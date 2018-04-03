@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Service worker test</title>
+		<script src="log.js"></script>
+		<script>
+			window.addEventListener('load', () => {
+				if ('serviceWorker' in navigator) {
+					const sw = navigator.serviceWorker.controller;
+					if (sw) {
+						log('This page is controlled by the service worker: ' + sw.scriptURL);
+						navigator.serviceWorker.ready.then(registration => {
+							log('We have a service worker with the scope: ' + registration.scope);
+						});
+					} else {
+						log('This page is not controlled by a service worker.');
+					}
+					navigator.serviceWorker.addEventListener('controllerchange', event => {
+						const sw = navigator.serviceWorker.controller;
+						if (sw) {
+							log('This page is controlled by a new service worker: ' + sw.scriptURL);
+							navigator.serviceWorker.ready.then(registration => {
+								log('We have a new service worker with the scope: ' + registration.scope);
+								swRegistration = registration;
+							});
+						} else {
+							log('This page is not controlled by a service worker anymore.');
+						}
+					});
+				} else {
+					log('This browser does not support service workers.');
+				}
+			});
+		</script>
+	</head>
+	<body>
+		<h1>Service worker test</h1>
+		<div id="log"></div>
+	</body>
+</html>

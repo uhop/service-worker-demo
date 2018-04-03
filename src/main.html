@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Service worker demo</title>
+		<script src="log.js"></script>
+		<script>
+			// setup a service worker
+			let swRegistration;
+			if ('serviceWorker' in navigator) {
+				const sw = navigator.serviceWorker.controller;
+				if (sw) {
+					log('This page is controlled by the service worker: ' + sw.scriptURL);
+					navigator.serviceWorker.ready.then(registration => {
+						log('We have a service worker with the scope: ' + registration.scope);
+						swRegistration = registration;
+					});
+				} else {
+					log('This page is not controlled by a service worker.');
+					navigator.serviceWorker.register('sw.js').then(registration => {
+						log('We have registered a service worker with the scope: ' + registration.scope);
+						swRegistration = registration;
+				  });
+				}
+				navigator.serviceWorker.addEventListener('controllerchange', event => {
+					const sw = navigator.serviceWorker.controller;
+					if (sw) {
+						log('This page is controlled by a new service worker: ' + sw.scriptURL);
+						navigator.serviceWorker.ready.then(registration => {
+							log('We have a new service worker with the scope: ' + registration.scope);
+							swRegistration = registration;
+						});
+					} else {
+						log('This page is not controlled by a service worker anymore.');
+					}
+				});
+			} else {
+				log('This browser does not support service workers.');
+			}
+
+			// setup different data retrieval
+			function fetchData (url) {
+				fetch(url).then(data => data.json()).then(data => {
+					document.getElementById('img').src = '';
+					document.getElementById('code').innerHTML = JSON.stringify(data, null, '  ');
+				});
+			}
+			function xhrData (url) {
+				const xhr = new XMLHttpRequest();
+				xhr.addEventListener('load', data => {
+					document.getElementById('img').src = '';
+					document.getElementById('code').innerHTML = JSON.stringify(JSON.parse(xhr.responseText), null, '  ');
+				});
+				xhr.open('GET', url);
+				xhr.send();
+			}
+			function imgData (url) {
+				document.getElementById('img').src = url;
+				document.getElementById('code').innerHTML = '';
+			}
+
+			// worker-specific utilities
+			let counter = 0;
+			function postMsg () {
+				navigator.serviceWorker && navigator.serviceWorker.controller &&
+					navigator.serviceWorker.controller.postMessage(counter++);
+			}
+			function update () {
+				swRegistration && swRegistration.update();
+			}
+		</script>
+	</head>
+	<body>
+		<h1>Service worker demo</h1>
+		<p>
+			<button onclick="javascript:fetchData('assets/server.json')">Fetch server data</button>&nbsp;
+			<button onclick="javascript:fetchData('assets/replacement.json')">Fetch replacement</button>
+			<br>
+			<button onclick="javascript:fetchData('assets/data.json')">Fetch synth data</button>&nbsp;
+			<button onclick="javascript:xhrData('assets/data.json')">XHR synth data</button>&nbsp;
+			<button onclick="javascript:imgData('assets/image.svg')">Image</button>
+			<br>
+			<button onclick="javascript:update()">Update</button>&nbsp;
+			<button onclick="javascript:postMsg()">Post message</button>
+		</p>
+		<pre><code id="code"></code></pre>
+		<div><img id="img" src=""></img></div>
+		<div id="log"></div>
+	</body>
+</html>
